@@ -16,13 +16,35 @@ class GameScene: SKScene {
     
     var elements = [String: SKSpriteNode]()
     
+    func randomColor() -> UIColor{
+        let red = CGFloat(drand48())
+        let green = CGFloat(drand48())
+        let blue = CGFloat(drand48())
+        return UIColor(red: red, green: green, blue: blue, alpha: 1.0)
+    }
+    
     override func didMove(to view: SKView) {
         
-        elements["player_top"] = self.childNode(withName: "player_top") as! SKSpriteNode
+        let numberOfSprites = 20 // number of sprite
         
-        elements["player_bottom"] = self.childNode(withName: "player_bottom") as! SKSpriteNode
+        for i in 0..<numberOfSprites {
+            let index = SKSpriteNode(color: randomColor(), size: CGSize(width: 100, height: 50))
+            
+            let pb = SKPhysicsBody(rectangleOf: CGSize(width: 100, height: 50))
+            
+            index.physicsBody = pb
+            index.physicsBody?.affectedByGravity = false
+            
+            index.position = CGPoint(x: -200 + i, y: 500)
+            
+            addChild(index)
+        }
         
-        elements["ball"] = self.childNode(withName: "ball") as! SKSpriteNode
+        elements["brick_1"] = self.childNode(withName: "brick_1") as? SKSpriteNode
+        
+        elements["player_bottom"] = self.childNode(withName: "player_bottom") as? SKSpriteNode
+        
+        elements["ball"] = self.childNode(withName: "ball") as? SKSpriteNode
         
         elements["ball"]?.physicsBody?.applyImpulse(CGVector(dx: 30, dy: 30))
         
@@ -57,13 +79,37 @@ class GameScene: SKScene {
     }
     
     override func update(_ currentTime: TimeInterval) {
-        elements["player_top"]?.run( SKAction.moveTo(x: (elements["ball"]?.position.x)!, duration: 0.3))
+        //self.childNode(withName: "brick_1")?.removeFromParent()
         
         let locationY = elements["ball"]?.position.y
         
-        if(locationY! > CGFloat(600) || locationY! < CGFloat(-600)) {
+        if(locationY! < CGFloat(-600)) {
             elements["ball"]?.position = CGPoint(x: 0, y: 0)
         }
 
+    }
+    
+    let shockWaveAction: SKAction = {
+        let growAndFadeAction = SKAction.group([SKAction.scale(to: 50, duration: 0.5),
+                                                SKAction.fadeOut(withDuration: 0.5)])
+        
+        let sequence = SKAction.sequence([growAndFadeAction,
+                                          SKAction.removeFromParent()])
+        
+        return sequence
+    }()
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        if contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "brick_1" {
+            
+            let shockwave = SKShapeNode(circleOfRadius: 1)
+            
+            shockwave.position = contact.contactPoint
+            scene?.addChild(shockwave)
+            
+            shockwave.run(shockWaveAction)
+            
+        }
+        
     }
 }
