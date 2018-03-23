@@ -9,12 +9,15 @@
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene {
+class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var entities = [GKEntity]()
     var graphs = [String: GKGraph]()
     
     var elements = [String: SKSpriteNode]()
+    
+    let saviorCategory: UInt32 = 0x1 << 0
+    let chickenCategory: UInt32 = 0x1 << 1
     
     func randomColor() -> UIColor{
         let red = CGFloat(drand48())
@@ -25,7 +28,11 @@ class GameScene: SKScene {
     
     override func didMove(to view: SKView) {
         
+        self.physicsWorld.contactDelegate = self
+        
         let numberOfSprites = 20 // number of sprite
+        var X = -220
+        var Y = 500
         
         for i in 0..<numberOfSprites {
             let index = SKSpriteNode(color: randomColor(), size: CGSize(width: 100, height: 50))
@@ -34,8 +41,28 @@ class GameScene: SKScene {
             
             index.physicsBody = pb
             index.physicsBody?.affectedByGravity = false
+            index.physicsBody?.friction = 0
+            index.physicsBody?.restitution = 1
+            index.physicsBody?.pinned = true
+            index.physicsBody?.allowsRotation = false
+            index.physicsBody?.usesPreciseCollisionDetection = true
+            index.physicsBody?.linearDamping = 0
+            index.physicsBody?.angularDamping = 0
             
-            index.position = CGPoint(x: -200 + i, y: 500)
+            index.physicsBody?.categoryBitMask = chickenCategory
+            index.physicsBody?.contactTestBitMask = saviorCategory
+            index.physicsBody?.collisionBitMask = saviorCategory
+            
+                if i == 3 || i == 7 || i == 11 || i == 15{
+                    index.position = CGPoint(x: X, y: Y)
+                    Y += -70
+                    X = -220
+                } else {
+                    index.position = CGPoint(x: X, y: Y)
+                    X += 140
+                }
+            
+            
             
             addChild(index)
         }
@@ -43,8 +70,15 @@ class GameScene: SKScene {
         elements["brick_1"] = self.childNode(withName: "brick_1") as? SKSpriteNode
         
         elements["player_bottom"] = self.childNode(withName: "player_bottom") as? SKSpriteNode
+        elements["player_bottom"]?.physicsBody?.categoryBitMask = chickenCategory
+        elements["player_bottom"]?.physicsBody?.contactTestBitMask = saviorCategory
+        elements["player_bottom"]?.physicsBody?.collisionBitMask = saviorCategory
         
         elements["ball"] = self.childNode(withName: "ball") as? SKSpriteNode
+        elements["ball"]?.physicsBody?.categoryBitMask = saviorCategory
+        elements["ball"]?.physicsBody?.contactTestBitMask = chickenCategory
+        elements["ball"]?.physicsBody?.collisionBitMask = chickenCategory
+
         
         elements["ball"]?.physicsBody?.applyImpulse(CGVector(dx: 30, dy: 30))
         
@@ -89,27 +123,19 @@ class GameScene: SKScene {
 
     }
     
-    let shockWaveAction: SKAction = {
-        let growAndFadeAction = SKAction.group([SKAction.scale(to: 50, duration: 0.5),
-                                                SKAction.fadeOut(withDuration: 0.5)])
-        
-        let sequence = SKAction.sequence([growAndFadeAction,
-                                          SKAction.removeFromParent()])
-        
-        return sequence
-    }()
+    
+    
     
     func didBegin(_ contact: SKPhysicsContact) {
-        if contact.bodyA.node?.name == "ball" && contact.bodyB.node?.name == "brick_1" {
-            
-            let shockwave = SKShapeNode(circleOfRadius: 1)
-            
-            shockwave.position = contact.contactPoint
-            scene?.addChild(shockwave)
-            
-            shockwave.run(shockWaveAction)
-            
+
+        if contact.bodyA.categoryBitMask == chickenCategory && contact.bodyB.categoryBitMask == saviorCategory {
+            print("contact made")
+            //savior.hidden = true
         }
-        
+        else if contact.bodyA.categoryBitMask == saviorCategory && contact.bodyB.categoryBitMask == chickenCategory {
+            print("contact made")
+            //savior.hidden = true
+        }
     }
+    
 }
